@@ -3,14 +3,14 @@ title: "Portfolio"
 author: "Timothy Mugambi"
 date: "2025-04-12"
 output:
-  pdf_document: default
-  html_document: default
+  rmdformats::readthedown
+  #rmdformats::material: default
 ---
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 ```
-### Research Question
+## Research Question
 ***What academic, demographic, and institutional characteristics best predict whether a graduate will be successfully placed in a job after completing their degree?***
 
 ```{r message=FALSE}
@@ -32,6 +32,8 @@ library(MASS)
 library(effects)
 library(vip)
 library(car)
+#library(gitcreds)
+#gitcreds::gitcreds_set()
 ```
 
 ## 1. Introduction
@@ -63,7 +65,7 @@ Examine whether non-linear relationships (e.g., between academic scores and sala
 Apply Lasso or Ridge regression to explore which features are most predictive of placement outcomes and how regularization can improve generalization.
 
 
-## Data Prepocessing
+### Data Prepocessing
 
 ```{r}
 glimpse(job)
@@ -104,7 +106,7 @@ unique_values <- unique(job$stream)
 print(unique_values)
 ```
 
-## Checking for Missing values
+### Checking for Missing values
 ```{r}
 miss_var_summary(job)
 ```
@@ -119,7 +121,7 @@ job <- job %>%
   drop_na()
 ```
 
-## GPA Distribution
+**1. GPA Distribution**
 
 ```{r}
 ggplot(job, aes(x = gpa)) +
@@ -129,7 +131,7 @@ ggplot(job, aes(x = gpa)) +
 ```
 The data shows a right-skewed distribution with GPAs ranging from approximately 3.3 to 3.9 on the standard 4.0 scale. Most students demonstrate strong academic performance, with the highest concentration occurring around the 3.7-3.75 range
 
-## GPA Distribution by Placement Status
+**2. GPA Distribution by Placement Status**
 
 ```{r}
 
@@ -143,7 +145,7 @@ ggplot(job, aes(x = gpa, fill = placement_status)) +
 ```
 The "Not Placed" students are concentrated primarily in the lower to middle GPA range (3.4-3.7), with their highest density occurring around 3.6-3.65. "Placed" students (blue) show a multimodal distribution with three distinct peaks occurring at approximately 3.7, 3.8, and 3.9.
 
-## Age Distribution
+**3. Age Distribution**
 
 ```{r}
 ggplot(job, aes(x = age)) +
@@ -153,7 +155,7 @@ ggplot(job, aes(x = age)) +
 ```
 This data set focused on students with the age range of 23 -26. 
 
-## Placement Rate by Gender
+**4. Placement Rate by Gender**
 
 ```{r}
 gender_placement <- job %>%
@@ -173,7 +175,7 @@ ggplot(gender_placement, aes(x = gender, y = percentage, fill = placement_status
 ```
 There is a slight difference in placement outcomes between genders, with females having a marginally higher success rate (83% placed vs. 17% not placed) compared to males (80% placed vs. 20% not placed). This difference suggests that female participants may have a slight advantage in the placement process, though the difference is relatively small.
 
-# Placement Rate by Stream(Course Specialization)
+**5. Placement Rate by Stream(Course Specialization)**
 ```{r}
 stream_placement <- job %>%
   group_by(stream, placement_status) %>%
@@ -196,9 +198,9 @@ Electronics and Communication has a 91% placement rate, indicating strong indust
 Mechanical Engineering shows strong performance with an 81% placement rate, demonstrating that traditional engineering fields maintain solid employment prospects.
 Computer Science has the lowest placement rate among the streams at 75%, which might be surprising given the high demand for computing skills. This suggests that either there might be higher competition in this field or specific factors affecting placement for these particular Computer Science students.
 
-## Salary Analysis of placed Student
+**Salary Analysis of placed Student**
 For the placed students we will do a salary analysis
-**1. Salary Distribution**
+**6. Salary Distribution**
 
 ```{r}
 placed_students <- job %>% filter(placement_status == "Placed")
@@ -210,7 +212,7 @@ ggplot(placed_students, aes(x = salary)) +
   scale_x_continuous(labels = scales::comma) +
   theme_minimal()
 ```
-**2. Salary by Stream (Undertaken Course)**
+**7. Salary by Stream (Undertaken Course)**
 ```{r}
 
 ggplot(placed_students, aes(x = stream, y = salary, fill = stream)) +
@@ -224,7 +226,7 @@ ggplot(placed_students, aes(x = stream, y = salary, fill = stream)) +
 ```
 Computer Science shows the highest median salary at approximately `$65,000`. The box spans from about $64,000 to $66,000, indicating a relatively tight interquartile range (IQR) and consistent salaries across Computer Science graduates.Electronics and Communication has the lowest median salary among these disciplines (around $63,500)
 
-**3. GPA, Experience and Placement Status**
+**8. GPA, Experience and Placement Status**
 
 
 ```{r}
@@ -301,8 +303,10 @@ job_processed %>%
   dplyr::select(placement, age,gpa,years_of_experience, gender_Female,gender_Male) %>%
 ggpairs
 ```
+
 ## 1. Logistic Regression
-## Feature Selection
+
+***Feature Selection**
 We will use backward selection, forward selection and stepwise method to identify the important features for the model. We'll create a new data set for feature selection
 ```{r}
 data_mod <- job_processed %>%
@@ -330,7 +334,7 @@ full_formula <- as.formula(paste("placement ~", paste(predictors, collapse = " +
 full_model <- glm(full_formula, family = binomial, data = train_data)
 summary(full_model)
 ```
-# Create null model with just intercept
+### Create null model with just intercept
 ```{r}
 null_model <- glm(placement ~ 1, family = binomial, data = train_data)
 #summary(null_model)
@@ -371,7 +375,7 @@ stepwise_summary <- summary(stepwise_model)
 ```
 
 
-## Comparing the different models
+## Comparing the different selection Techniques
 ```{r}
 aic_comparison <- data.frame(
   Model = c("Full Model", "Backward Selection", "Forward Selection", "Stepwise Selection"),
@@ -394,6 +398,8 @@ ggplot(aic_comparison, aes(x = reorder(Model, AIC), y = AIC)) +
        y = "AIC (lower is better)") +
   theme_minimal()
 ```
+
+
 ## Extracting Important features
 ```{r}
 get_model_vars <- function(model) {
@@ -438,7 +444,7 @@ ggplot(var_selection_long, aes(x = Variable, y = Model, fill = Selected)) +
 ```
 Both Forward and Stepwise selection methods chose identical features, which explains the identical AIC values (423.9430). Backward Selection retained more features than Forward or stepwise selection methods. We had certain features appear in all selection methods i.e `stream_Computer Science`, `years_of_experience`, suggesting these are highly significant predictors for the model.
 
-## Evaluating Models on Test Data
+## Model Evaluation on Test Data
 ```{r}
 evaluate_model <- function(model, test_data, model_name) {
   probs <- predict(model, newdata = test_data, type = "response")
@@ -536,7 +542,7 @@ From the results in our `Variation Infation Factor` we can see that multicolline
 `Years of experience` is a strong predictor with a highly significant positive coefficient (0.217, p < 0.001), indicating that each additional year of experience substantially increases placement probability. College tier Q also shows a significant positive effect (0.180, p < 0.01), suggesting graduates from higher-tier institutions have better placement outcomes. Similarly, Electronics and Communication stream demonstrates a positive significant relationship with placement (0.120, p < 0.05). Interestingly, GPA shows a negative coefficient (-0.242) but isn't statistically significant (p = 0.232), suggesting academic performance may not directly translate to employment success when controlling for other factors. Variables like age, gender, and most academic streams (Computer Science, Electrical Engineering) show minimal impact with non-significant coefficients
 `age`, `gpa`, `gender_female`, `Stream_Computer.Science`, `Stream_Electrical.Engineering` are not statistically significant to the model so we drop them
 
-**Final MLR Model**
+###Final MLR Model
 
 ```{r}
 mlr_model <- lm(placement_numeric ~ 
@@ -566,9 +572,11 @@ plot(mlr_model)
 ```
 The plot shows a clear pattern in the residuals rather than random scatter around the horizontal line at zero, indicating a violation of the linearity assumption. There's a visible downward trend from left to right, suggesting the relationship between predictors and placement might be nonlinear. The spread of residuals is inconsistent across fitted values (heteroscedasticity), with greater variance at lower fitted values and more compression at higher fitted values. This uneven spread violates the assumption of constant variance. 
 
-## Research Question 2
+## 3. Multinomial Regression
+
+### Research Question 2
 **What factors best predict the starting salary of placed graduates?**
-## 2. Multinomial Regression
+
 
 ```{r}
 library(nnet)
@@ -610,15 +618,15 @@ full_model <- multinom(salary_category ~ gpa + years_of_experience +
 summary(full_model)
 
 ```
-Making predictions on the test data
+### Making predictions on the test data
 ```{r}
 test_predictions <- predict(full_model, newdata = salary_test)
 confusion_matrix <- confusionMatrix(test_predictions, salary_test$salary_category)
-print(confusion_matrix)
+#print(confusion_matrix)
 
 
 ```
-# Calculate variable importance
+## Calculate variable importance
 
 ```{r}
 
@@ -655,7 +663,7 @@ tidy(final_model)
 
 ```
 
-## Model Accuracy
+### Model Accuracy
 ```{r}
 final_predictions <- predict(final_model, newdata = salary_test)
 final_confusion_matrix <- confusionMatrix(final_predictions, salary_test$salary_category)
@@ -669,7 +677,7 @@ cat("Final model AIC:", final_model_aic, "\n")
 
 ```
 
-# Visualize final model predictions on Test Data
+### Visualize final model predictions on Test Data
 ```{r}
 test_results <- data.frame(
   actual = salary_test$salary_category,
@@ -684,7 +692,8 @@ cat("Accuracy:", final_confusion_matrix$overall["Accuracy"], "\n")
 
 The accuracy score of 63.16% suggests that the variables (GPA, gender, college tier, and IT specialization) capture meaningful patterns in determining salary outcomes
 
-## Introducing an interaction term for the Multinomial Model
+
+# Introducing an interaction term for the Multinomial Model
 We will introduce interaction terms to allow us to capture more complex relationships between predictors that may significantly influence salary outcomes. 
 
 ```{r}
@@ -762,7 +771,8 @@ print(lrt_exp_stream)
 print("Likelihood ratio test for Gender x Stream interaction:")
 print(lrt_gender_stream)
 ```
-# Evaluate prediction accuracy for each model
+
+### Evaluate prediction accuracy for each model
 We will now evaluate the prediction accuracy for each model based on the interaction terms used
 ```{r}
 evaluate_model <- function(model, test_data) {
@@ -785,7 +795,7 @@ print(model_accuracies)
 
 ```
 
-**Model with all the Significant Interactions**
+### Model with all the Significant Interactions
 
 ```{r}
 comprehensive_model <- multinom(salary_category ~ gpa + gender_Female + gender_Male + stream_Computer.Science + stream_Electrical.Engineering + 
@@ -838,7 +848,7 @@ cat("Accuracy:", evaluate_model(best_model, salary_test), "\n")
 
 ```
 
-## 3. Linear Discriminant Analysis
+# 4. Linear Discriminant Analysis
 
 ## Research Question 3
 **How does feature selection through regularization improve generalization to new graduate data for job placement?**
@@ -927,7 +937,7 @@ if(require(pROC)) {
 ```
 The area under the curve estimated between 0.7-0.8, the model exhibits moderate predictive power. This  model has meaningful predictive power for distinguishing between `placed` and `not placed` students, but there remains some overlap between the groups that prevents perfect classification. The model appears to be reasonably well-balanced between sensitivity and specificity, making it a useful tool for predicting placement outcomes based on the selected variables.
 
-**Feature Importance for the model**
+## Feature Importance for the model
 ```{r}
 
 lda_importance <- abs(lda_model$scaling)
@@ -993,7 +1003,8 @@ print(model_comparison)
 ```
 The LDA model achieves a slightly higher overall accuracy (79.3%) compared to Logistic Regression (78.6%), indicating it correctly classifies a marginally larger proportion of cases. The low sensitivity values for both models suggest they struggle significantly with identifying positive placement cases, while the high specificity indicates they're much more reliable at identifying non-placement cases.
 
-## 4. Polynomial Regression
+# 5. Polynomial Regression
+
 ## Research Question 4
 **To what extent does the relationship between academic performance (GPA) and starting salary exhibit nonlinear patterns, and how do these nonlinear effects interact with years of experience and field of study to predict graduate salary outcomes?**
 ```{r}
